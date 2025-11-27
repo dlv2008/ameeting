@@ -4,12 +4,13 @@ import './globals.css'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Toaster } from 'sonner'
+import { SplashScreen } from '@/components/splash-screen'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Voice Transcription Assistant - Real-time Speech to Text with AI Summary',
-  description: 'Real-time voice transcription web application built with Next.js + FastRTC, supporting AI intelligent summary',
+  title: 'I2AI会议智能体 - AI驱动的智能会议助手',
+  description: '基于Next.js构建的实时语音转写Web应用，支持AI智能总结',
 }
 
 export default function RootLayout({
@@ -23,10 +24,11 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={inter.className} suppressHydrationWarning>
+        <SplashScreen />
         <ErrorBoundary>
           <AuthProvider>
             {children}
-            <Toaster 
+            <Toaster
               position="bottom-right"
               richColors
               closeButton

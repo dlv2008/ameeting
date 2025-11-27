@@ -45,6 +45,13 @@ class SpeakerDiarizationManager:
             logger.info("Initializing pyannote.audio speaker diarization pipeline...")
             start_time = time.time()
             
+            # Check if diarization is enabled
+            if not speaker_config.enabled:
+                logger.warning("Diarization disabled by configuration")
+                self._pipeline = None
+                self._model_loaded = False
+                return
+
             # Check for HuggingFace token
             if not speaker_config.huggingface_token:
                 logger.warning("HuggingFace token not configured - diarization will be disabled")
@@ -62,12 +69,13 @@ class SpeakerDiarizationManager:
                 use_auth_token=speaker_config.huggingface_token,
             )
             
-            # Move to GPU if available
-            if torch.cuda.is_available():
-                logger.info("Moving speaker diarization pipeline to GPU")
-                self._pipeline.to(torch.device("cuda"))
-            else:
-                logger.info("Using CPU for speaker diarization")
+            # Move to device
+            target_device = "cpu"
+            if speaker_config.device == "cuda" and torch.cuda.is_available():
+                target_device = "cuda"
+            
+            logger.info(f"Moving speaker diarization pipeline to {target_device}")
+            self._pipeline.to(torch.device(target_device))
             
             self._load_time = time.time() - start_time
             self._model_loaded = True
@@ -94,8 +102,9 @@ class SpeakerDiarizationManager:
             "available": self.is_available(),
             "load_time_seconds": self._load_time,
             "model_name": speaker_config.pyannote_model,
-            "device": "cuda" if self.is_available() and hasattr(self._pipeline, 'device') else "cpu",
+            "device": str(self._pipeline.device) if self.is_available() and hasattr(self._pipeline, 'device') else "n/a",
             "huggingface_token_configured": bool(speaker_config.huggingface_token),
+            "enabled": speaker_config.enabled,
         }
     
     def diarize_audio_file(self, audio_file_path: str, session_id: str = None) -> SpeakerDiarizationResponse:

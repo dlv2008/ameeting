@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 
 from shared.logging import ServiceLogger
-from shared.config import service_urls, base_config
+from shared.config import service_urls, base_config, stt_config, speaker_config
 from shared.utils import ServiceClient
 from shared.models import (
     AudioData, TranscriptionRequest, TranscriptionResponse,
@@ -27,7 +27,8 @@ class STTServiceClient(ServiceClient):
     def __init__(self):
         super().__init__(
             base_url=service_urls.stt_service_url,
-            api_key=base_config.service_api_key
+            api_key=base_config.service_api_key,
+            timeout=stt_config.timeout_seconds
         )
         self.service_name = "stt-service"
     
@@ -117,7 +118,8 @@ class DiarizationServiceClient(ServiceClient):
     def __init__(self):
         super().__init__(
             base_url=service_urls.diarization_service_url,
-            api_key=base_config.service_api_key
+            api_key=base_config.service_api_key,
+            timeout=speaker_config.timeout_seconds
         )
         self.service_name = "diarization-service"
     

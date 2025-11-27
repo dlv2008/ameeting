@@ -92,8 +92,9 @@ class STTConfig(BaseSettings):
     model_dir: str = os.getenv("STT_MODEL_DIR", "iic/SenseVoiceSmall")
     output_dir: str = os.getenv("STT_OUTPUT_DIR", "./temp_audio")
     delete_audio_file: bool = True
-    max_audio_length: int = 300  # 5 minutes max
+    max_audio_length: int = 600  # 5 minutes max
     batch_size: int = 1
+    timeout_seconds: int = 300  # 5 minutes timeout
     
     class Config:
         env_file = str(ENV_FILE_PATH)
@@ -107,6 +108,9 @@ class SpeakerConfig(BaseSettings):
     pyannote_model: str = "pyannote/speaker-diarization-3.1"
     min_segment_duration: float = 1.0
     max_speakers: int = 10
+    enabled: bool = os.getenv("DIARIZATION_ENABLED", "true").lower() == "true"
+    device: str = os.getenv("DIARIZATION_DEVICE", "cuda")
+    timeout_seconds: int = 300  # 5 minutes timeout
     
     class Config:
         env_file = str(ENV_FILE_PATH)

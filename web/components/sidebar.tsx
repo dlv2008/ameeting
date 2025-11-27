@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Mic, MessageSquare, ChevronLeft, ChevronRight, LogOut, Settings, FileText } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -22,7 +23,7 @@ export function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
   const menuItems = [
     { id: 'record', label: '我的记录', icon: Mic },
     { id: 'templates', label: '我的模板', icon: FileText },
-    { id: 'ai', label: 'Ask AI', icon: MessageSquare, badge: 'Unlimited & Pro' },
+    { id: 'ai', label: '更多智能功能', icon: MessageSquare, badge: 'Pro' },
   ]
 
   const handleSignOut = async () => {
@@ -37,10 +38,10 @@ export function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
 
   // 获取显示用户名
   const getDisplayName = () => {
-    return user.user_metadata?.full_name || 
-           user.user_metadata?.username || 
-           user.email?.split('@')[0] || 
-           'User'
+    return user.user_metadata?.full_name ||
+      user.user_metadata?.username ||
+      user.email?.split('@')[0] ||
+      'User'
   }
 
   return (
@@ -52,11 +53,20 @@ export function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Mic className="w-5 h-5 text-primary-foreground" />
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center relative overflow-hidden shadow-lg">
+                <Image
+                  src="/i2ai_logo.png"
+                  alt="I2AI Logo"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <h1 className="text-lg font-bold text-gray-800">intrascribe</h1>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                I2AI会议智能体
+              </h1>
             </div>
           )}
           <Button
@@ -76,24 +86,28 @@ export function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = currentView === item.id
-            
+
             return (
               <Button
                 key={item.id}
                 variant={isActive ? "default" : "ghost"}
                 className={cn(
-                  "w-full justify-start",
+                  "w-full justify-start transition-all duration-200",
                   isCollapsed ? "px-2" : "px-3",
-                  isActive && "bg-blue-600 text-white hover:bg-blue-700"
+                  isActive && "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-3d"
                 )}
                 onClick={() => onViewChange(item.id)}
               >
-                <Icon className={cn("h-4 w-4", !isCollapsed && "mr-3")} />
+                <Icon className={cn(
+                  "h-4 w-4",
+                  !isCollapsed && "mr-3",
+                  isActive && "animate-pulse-glow"
+                )} />
                 {!isCollapsed && (
                   <div className="flex items-center justify-between w-full">
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-md">
+                      <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-md shadow-sm">
                         {item.badge}
                       </span>
                     )}
