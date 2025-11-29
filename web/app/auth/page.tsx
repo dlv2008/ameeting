@@ -78,10 +78,10 @@ export default function AuthPage() {
             />
           </div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            I2AI»áÒéÖÇÄÜÌå
+            I2AIä¼šè®®æ™ºèƒ½ä½“
           </h2>
           <p className="text-sm text-muted-foreground">
-            AIÇý¶¯µÄÖÇÄÜ»áÒéÖúÊÖ
+            AIé©±åŠ¨çš„æ™ºèƒ½ä¼šè®®åŠ©æ‰‹
           </p>
         </div>
 

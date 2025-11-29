@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Mic, MessageSquare, ChevronLeft, ChevronRight, LogOut, Settings, FileText } from 'lucide-react'
+import { Mic, MessageSquare, ChevronLeft, ChevronRight, LogOut, Settings, FileText, Layout } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -23,7 +23,8 @@ export function Sidebar({ currentView, onViewChange, user }: SidebarProps) {
   const menuItems = [
     { id: 'record', label: '我的记录', icon: Mic },
     { id: 'templates', label: '我的模板', icon: FileText },
-    { id: 'ai', label: '更多智能功能', icon: MessageSquare, badge: 'Pro' },
+    { id: 'product', label: '产品介绍', icon: Layout },
+    { id: 'ai', label: 'Ask AI', icon: MessageSquare, badge: 'Pro' },
   ]
 
   const handleSignOut = async () => {

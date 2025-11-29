@@ -9,8 +9,8 @@ import { SplashScreen } from '@/components/splash-screen'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'I2AI»áÒéÖÇÄÜÌå - AIÇı¶¯µÄÖÇÄÜ»áÒéÖúÊÖ',
-  description: '»ùÓÚNext.js¹¹½¨µÄÊµÊ±ÓïÒô×ªĞ´WebÓ¦ÓÃ£¬Ö§³ÖAIÖÇÄÜ×Ü½á',
+  title: 'I2AIä¼šè®®æ™ºèƒ½ä½“ - AIé©±åŠ¨çš„æ™ºèƒ½ä¼šè®®åŠ©æ‰‹',
+  description: 'åŸºäºNext.jsæ„å»ºçš„å®æ—¶è¯­éŸ³è½¬å†™Webåº”ç”¨ï¼Œæ”¯æŒAIæ™ºèƒ½æ€»ç»“',
 }
 
 export default function RootLayout({

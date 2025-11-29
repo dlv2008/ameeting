@@ -22,6 +22,7 @@ import { Header } from '@/components/header'
 import { TranscriptView } from '@/components/transcript-view'
 import { AISummaryPanel } from '@/components/ai-summary-panel'
 import { TemplateManager } from '@/components/template-manager'
+import ProductPage from '@/app/product/page'
 import { useAuth } from '@/hooks/useAuth'
 import { useRecordingSessions } from '@/hooks/useRecordingSessions'
 import { toast } from 'sonner'
@@ -57,21 +58,21 @@ interface RecordingSession {
 export default function HomePage() {
   const router = useRouter()
   const { user, session, loading: authLoading } = useAuth()
-  const { 
-    sessions, 
+  const {
+    sessions,
     deleteSession,
     generateSummary,
     generateTitle,
     fetchSessions,
     finalizeSession
   } = useRecordingSessions()
-  
+
   // Create APIClient instance for batch transcription
-  const [apiClient, setApiClient] = useState<{ 
+  const [apiClient, setApiClient] = useState<{
     updateSessionTemplate: (sessionId: string, templateId: string) => Promise<{ message: string; session_id: string; template_id: string }>
     retranscribeSession: (sessionId: string) => Promise<{ success: boolean; message: string; session_id: string; status: string }>
   } | null>(null)
-  
+
   useEffect(() => {
     if (session?.access_token) {
       import('@/lib/supabase').then(({ APIClient }) => {
@@ -80,7 +81,7 @@ export default function HomePage() {
       })
     }
   }, [session?.access_token])
-  
+
   const [currentView, setCurrentView] = useState('record')
   const [selectedSessionId, setSelectedSessionId] = useState<string>('')
   const [currentTranscript, setCurrentTranscript] = useState<TranscriptItem[]>([])
@@ -88,7 +89,7 @@ export default function HomePage() {
   const [isRecording, setIsRecording] = useState(false)
   // Audio playback sync states
   const [currentAudioTime, setCurrentAudioTime] = useState(0)
-  
+
   // AI Summary states
   const [showAISummaryPanel, setShowAISummaryPanel] = useState(false)
   const [isLoadingSummary, setIsLoadingSummary] = useState(false)
@@ -96,13 +97,13 @@ export default function HomePage() {
   const [aiTitle, setAiTitle] = useState<string>('')
   const [aiSummaryId, setAiSummaryId] = useState<string>('')
   const [transcriptionId, setTranscriptionId] = useState<string>('')
-  
+
   // Add current recording session ID state
   const [currentRecordingSessionId, setCurrentRecordingSessionId] = useState<string>('')
-  
+
   // Audio refresh ref
   const refreshAudioRef = useRef<(() => Promise<void>) | null>(null)
-  
+
   // Template selection state
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>()
 
@@ -113,7 +114,7 @@ export default function HomePage() {
       if (transcriptEvent.text.length > 100 && transcriptEvent.text.includes(' ') && !transcriptEvent.timestamp) {
         // This is the complete transcription text when recording ends
         setFullTranscriptText(transcriptEvent.text)
-        
+
         // Split complete text into sentences for display
         const sentences = transcriptEvent.text.split(/[。！？.!?]/).filter(s => s.trim())
         const transcriptItems = sentences.map((sentence, index) => ({
@@ -122,9 +123,9 @@ export default function HomePage() {
           speaker: transcriptEvent.speaker || undefined,
           text: sentence.trim() + (index < sentences.length - 1 ? '。' : '')
         })).filter(item => item.text.length > 1)
-        
+
         setCurrentTranscript(transcriptItems)
-        
+
         // After recording ends, if there's a recording session ID, automatically select it
         if (currentRecordingSessionId) {
           setSelectedSessionId(currentRecordingSessionId)
@@ -137,7 +138,7 @@ export default function HomePage() {
           speaker: transcriptEvent.speaker && transcriptEvent.speaker !== 'unknown' ? transcriptEvent.speaker : undefined,
           text: transcriptEvent.text.trim()
         }
-        
+
         // Directly append new transcription items instead of replacing
         setCurrentTranscript(prev => [...prev, newItem])
       }
@@ -146,7 +147,7 @@ export default function HomePage() {
 
   const handleRecordingStateChange = useCallback(async (recording: boolean) => {
     setIsRecording(recording)
-    
+
     if (recording) {
       // Start recording - clear current state
       setCurrentTranscript([])
@@ -162,26 +163,26 @@ export default function HomePage() {
       toast.info('Recording ended, saving transcription data...', {
         duration: 5000
       })
-      
+
       // Call finalize session to save Redis data to database
       if (currentRecordingSessionId) {
         try {
           await finalizeSession(currentRecordingSessionId)
           toast.success('Transcription data saved to database')
-          
+
           // Wait a moment, then manually refresh audio files
           setTimeout(async () => {
             if (refreshAudioRef.current) {
               await refreshAudioRef.current()
             }
           }, 3000)
-          
+
         } catch (error) {
           toast.error('Failed to save transcription data, but real-time data is still available')
         }
       } else {
       }
-      
+
       // Refresh session data to get latest status
       setTimeout(() => {
         try {
@@ -189,7 +190,7 @@ export default function HomePage() {
         } catch (e) {
         }
       }, 1200)
-      
+
       setTimeout(() => {
         setCurrentRecordingSessionId('')
       }, 2000) // Give data update some time
@@ -203,7 +204,7 @@ export default function HomePage() {
     if (roomName.startsWith('intrascribe_room_')) {
       actualSessionId = roomName.replace('intrascribe_room_', '')
     }
-    
+
     setCurrentRecordingSessionId(actualSessionId)
     // Auto-select newly created session
     setSelectedSessionId(actualSessionId)
@@ -236,7 +237,7 @@ export default function HomePage() {
     }
 
     setSelectedSessionId(selectedSession.id)
-    
+
     // Clear current state
     setCurrentTranscript([])
     setFullTranscriptText('')
@@ -245,7 +246,7 @@ export default function HomePage() {
     setAiSummaryId('')
     setTranscriptionId('')
     setShowAISummaryPanel(false)
-    
+
     // Set template ID from session
     const sessionTemplateId = selectedSession.template_id || undefined
     setSelectedTemplateId(sessionTemplateId)
@@ -254,17 +255,17 @@ export default function HomePage() {
       sessionTemplateId: sessionTemplateId,
       templateIdType: typeof sessionTemplateId
     })
-    
+
     // Restore transcription content
     if (selectedSession.transcriptions && selectedSession.transcriptions.length > 0) {
       const transcription = selectedSession.transcriptions[0]
-      
+
       setFullTranscriptText(transcription.content)
       setTranscriptionId(transcription.id)
-      
+
       // Prioritize using segments field to build transcript items
       let segments = transcription.segments
-      
+
       // Handle possible data format issues
       if (segments && typeof segments === 'string') {
         try {
@@ -273,9 +274,9 @@ export default function HomePage() {
           segments = []
         }
       }
-      
+
       if (segments && Array.isArray(segments) && segments.length > 0) {
-        
+
         // Validate each segment
         const validSegments = segments.filter((segment: unknown, _index: number) => {
           const seg = segment as { text?: string; speaker?: string; start_time?: number; end_time?: number; index?: number }
@@ -284,8 +285,8 @@ export default function HomePage() {
           }
           return isValid
         })
-        
-        
+
+
         if (validSegments.length > 0) {
           const transcriptItems = validSegments.map((segment: unknown, index: number) => {
             const seg = segment as { text: string; speaker?: string; start_time?: number; end_time?: number; index?: number }
@@ -298,7 +299,7 @@ export default function HomePage() {
               text: seg.text.trim()
             }
           })
-          
+
           setCurrentTranscript(transcriptItems)
         } else {
           // Fallback to content splitting
@@ -315,23 +316,23 @@ export default function HomePage() {
           }
         }
       } else {
-        
+
         // If no segments, fallback to splitting content text
         if (transcription.content && transcription.content.trim()) {
           const lines = transcription.content.split('\n').filter((line: string) => line.trim())
-          
+
           const transcriptItems = lines.map((line: string, index: number) => ({
             id: `${transcription.id}_${index}`,
             timestamp: new Date(transcription.created_at).toLocaleTimeString('zh-CN', { hour12: false }),
             text: line.trim()
           }))
-          
+
           setCurrentTranscript(transcriptItems)
         } else {
           setCurrentTranscript([])
         }
       }
-      
+
       // Restore AI summary
       if (selectedSession.ai_summaries && selectedSession.ai_summaries.length > 0) {
         const summary = selectedSession.ai_summaries[0]
@@ -339,7 +340,7 @@ export default function HomePage() {
         setAiSummaryId(summary.id)
         setShowAISummaryPanel(true)
       }
-      
+
       // Set title
       setAiTitle(selectedSession.title)
     }
@@ -347,16 +348,16 @@ export default function HomePage() {
 
   // Handle session selection
   const handleSessionSelect = useCallback(async (sessionId: string) => {
-    
+
     // Restore state from session data
     const selectedSession = sessions.find(s => s.id === sessionId)
     if (selectedSession) {
-      
+
       // Add more detailed session data debug info
-      
+
       // Key fix: if session is completed but has no transcription data, force refresh
-      if (selectedSession.status === 'completed' && 
-          (!selectedSession.transcriptions || selectedSession.transcriptions.length === 0)) {
+      if (selectedSession.status === 'completed' &&
+        (!selectedSession.transcriptions || selectedSession.transcriptions.length === 0)) {
         await fetchSessions()
         // Re-fetch session data after refresh
         const refreshedSession = sessions.find(s => s.id === sessionId)
@@ -366,7 +367,7 @@ export default function HomePage() {
         }
         return
       }
-      
+
       processSessionData(selectedSession)
     } else {
       console.warn('⚠️ 未找到指定的会话:', sessionId)
@@ -381,7 +382,7 @@ export default function HomePage() {
     }
 
     const transcriptText = fullTranscriptText || currentTranscript.map(t => t.text).join(' ')
-    
+
     if (!transcriptText.trim()) {
       toast.error('Transcription content is empty, cannot generate summary')
       return
@@ -396,7 +397,7 @@ export default function HomePage() {
 
     // Use provided template ID, fallback to selected template ID, or use empty string for default
     const finalTemplateId = templateId || selectedTemplateId || ''
-    
+
     console.log('handleAISummary debug:', {
       providedTemplateId: templateId,
       selectedTemplateId: selectedTemplateId,
@@ -411,20 +412,20 @@ export default function HomePage() {
       const summaryResult = await generateSummary(sessionId, transcriptText, finalTemplateId)
       if (summaryResult) {
         setAiSummary(summaryResult.summary)
-        
+
         // Get AI summary ID from refreshed session data
         const refreshedSession = sessions.find(s => s.id === sessionId)
         if (refreshedSession?.ai_summaries && refreshedSession.ai_summaries.length > 0) {
           const latestSummary = refreshedSession.ai_summaries[0]
           setAiSummaryId(latestSummary.id)
         }
-        
+
         // Generate title after summary
         const titleResult = await generateTitle(sessionId, transcriptText, summaryResult.summary)
         if (titleResult) {
           setAiTitle(titleResult.title)
         }
-        
+
         toast.success('AI summary and title generation completed')
       }
     } catch (error) {
@@ -442,7 +443,7 @@ export default function HomePage() {
       if (apiClient) {
         await apiClient.updateSessionTemplate(sessionId, templateId)
         await fetchSessions()
-        
+
         // Update local template selection state if this is the currently selected session
         if (sessionId === selectedSessionId) {
           const newTemplateId = templateId || undefined
@@ -453,7 +454,7 @@ export default function HomePage() {
             newTemplateId: newTemplateId
           })
         }
-        
+
         toast.success('Template selection saved')
       } else {
         toast.error('Unable to save template selection')
@@ -480,7 +481,7 @@ export default function HomePage() {
           setTranscriptionId('')
           setShowAISummaryPanel(false)
           setCurrentAudioTime(0)
-          
+
           // Reset audio player
           if (window.audioPlayerSeekTo) {
             try {
@@ -527,7 +528,7 @@ export default function HomePage() {
     const minutes = Math.floor((seconds % 3600) / 60)
     const secs = Math.floor(seconds % 60)
     const milliseconds = Math.round((seconds % 1) * 1000)
-    
+
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`
   }
 
@@ -538,7 +539,7 @@ export default function HomePage() {
       const timeoutId = setTimeout(() => {
         router.replace('/auth')
       }, 100)
-      
+
       return () => clearTimeout(timeoutId)
     }
   }, [user, authLoading, router])
@@ -549,7 +550,7 @@ export default function HomePage() {
       // Find transcription content and AI summary for this session
       const transcription = session.transcriptions?.[0]
       const aiSummary = session.ai_summaries?.[0]
-      
+
       const recording = {
         id: session.id,
         timestamp: new Date(session.created_at).toLocaleString('zh-CN'),
@@ -560,10 +561,10 @@ export default function HomePage() {
         status: session.status,
         templateId: session.template_id || undefined
       }
-      
+
       return recording
     })
-    
+
     return converted
   }, [sessions])
 
@@ -578,7 +579,7 @@ export default function HomePage() {
     if (timestamp.startsWith('[') && timestamp.includes(',')) {
       const timeRange = timestamp.slice(1, -1) // Remove brackets
       const [startStr, endStr] = timeRange.split(',')
-      
+
       const parseTimeString = (timeStr: string) => {
         const parts = timeStr.split(':')
         if (parts.length >= 4) {
@@ -595,7 +596,7 @@ export default function HomePage() {
         }
         return 0
       }
-      
+
       return {
         start_time: parseTimeString(startStr),
         end_time: parseTimeString(endStr)
@@ -626,11 +627,11 @@ export default function HomePage() {
     try {
       // Save current selected session ID to prevent loss during retranscription
       const retranscribeSessionId = selectedSessionId
-      
+
       // Set retranscription state and show overlay
       setIsRetranscribing(true)
       setHasSeenProcessing(false)
-      
+
       // Record current transcription signature as baseline
       if (selectedSession?.transcriptions && selectedSession.transcriptions.length > 0) {
         const t = selectedSession.transcriptions[0] as unknown as { id?: string; content?: string; segments?: unknown }
@@ -647,12 +648,12 @@ export default function HomePage() {
       } else {
         setRetranscribeBaseline({ id: undefined, contentLength: 0, segmentsLength: 0 })
       }
-      
+
       toast.info('Retranscribing, please wait...', { duration: 2000 })
-      
+
       // Add brief delay to ensure overlay is visible
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       // Call retranscription API
       if (!apiClient) {
         throw new Error('API client not initialized')
@@ -665,22 +666,22 @@ export default function HomePage() {
       }
 
       toast.success('Retranscription started, please wait for completion')
-      
+
       // Refresh session list to get latest status
       await fetchSessions()
-      
+
       // Ensure selected session remains valid after refresh
       setTimeout(() => {
         if (selectedSessionId !== retranscribeSessionId) {
           setSelectedSessionId(retranscribeSessionId)
         }
       }, 100)
-      
+
       // Fallback: only close overlay on timeout, not on completed status
       const startTs = Date.now()
       const fallbackCheck = () => {
         if (!isRetranscribingRef.current) return
-        
+
         if (Date.now() - startTs > 8000) {
           setIsRetranscribing(false)
           setHasSeenProcessing(false)
@@ -691,15 +692,15 @@ export default function HomePage() {
         setTimeout(fallbackCheck, 500)
       }
       setTimeout(fallbackCheck, 2000)
-      
+
     } catch (error: unknown) {
       const err = error as { response?: { status?: number }; message?: string }
       console.error('Retranscription failed:', error)
-      
+
       // Reset state on failure
       setIsRetranscribing(false)
       setHasSeenProcessing(false)
-      
+
       if (err.response?.status === 404 || err.message?.includes('404')) {
         toast.warning('Retranscription feature temporarily unavailable, please try again later')
       } else {
@@ -712,22 +713,22 @@ export default function HomePage() {
   // Handle transcript update for editing
   const handleTranscriptUpdate = useCallback(async (updatedTranscript: TranscriptItem[]) => {
     setCurrentTranscript(updatedTranscript)
-    
+
     // Update the full transcript text as well
     const updatedText = updatedTranscript.map(item => item.text).join(' ')
     setFullTranscriptText(updatedText)
-    
+
     // Save to backend
     try {
       // Prefer selectedSessionId, fallback to currentRecordingSessionId
       const sessionId = selectedSessionId || currentRecordingSessionId
-      
+
       if (sessionId) {
         // Try to find corresponding session from sessions state
         let session = sessions.find(s => s.id === sessionId)
         let currentTranscriptionId = ''
         let originalSegments: unknown[] = []
-        
+
         if (session && session.transcriptions && session.transcriptions.length > 0) {
           // Get transcription info from sessions state
           currentTranscriptionId = session.transcriptions[0].id
@@ -739,11 +740,11 @@ export default function HomePage() {
         } else {
           // Last attempt: refresh sessions data if transcription record exists but sessions not updated
           await fetchSessions()
-          
+
           // Re-find session
           const refreshedSessions = sessions
           session = refreshedSessions.find(s => s.id === sessionId)
-          
+
           if (session && session.transcriptions && session.transcriptions.length > 0) {
             currentTranscriptionId = session.transcriptions[0].id
             originalSegments = session.transcriptions[0].segments || []
@@ -752,7 +753,7 @@ export default function HomePage() {
             return
           }
         }
-        
+
         // Handle possible string format segments
         if (typeof originalSegments === 'string') {
           try {
@@ -762,7 +763,7 @@ export default function HomePage() {
             originalSegments = []
           }
         }
-        
+
         // Convert transcript items to segments format, preserving original timing data
         const segments = updatedTranscript.map((item, index) => {
           // Try to find matching original segment by index or content
@@ -773,10 +774,10 @@ export default function HomePage() {
             confidence_score?: number | null
             is_final?: boolean
           }
-          
+
           // Parse timing from timestamp if available, otherwise use original timing
           const { start_time, end_time } = parseTimestamp(item.timestamp)
-          
+
           return {
             index: index + 1,
             speaker: item.speaker || originalSegment.speaker || 'unknown',
@@ -787,20 +788,20 @@ export default function HomePage() {
             is_final: originalSegment.is_final !== undefined ? originalSegment.is_final : true
           }
         })
-        
+
         // Call API to update transcription
         const supabaseModule = await import('@/lib/supabase')
         const token = supabaseModule.supabase ? (await supabaseModule.supabase.auth.getSession()).data.session?.access_token : null
-        
+
         if (token) {
           const apiClient = new supabaseModule.APIClient(
             '/api/v1',
             () => token
           )
-        
+
           await apiClient.updateTranscription(currentTranscriptionId, segments)
           toast.success('Transcription content saved to server')
-          
+
           // Refresh sessions to get updated data
           fetchSessions()
         } else {
@@ -828,38 +829,38 @@ export default function HomePage() {
 
   useEffect(() => { sessionsRef.current = sessions }, [sessions])
   useEffect(() => { isRetranscribingRef.current = isRetranscribing }, [isRetranscribing])
-  
+
   // Listen for retranscription completion events
   useEffect(() => {
     const handleRetranscriptionCompleted = (event: CustomEvent) => {
       const { sessionId } = event.detail
-      
+
       // If it's the currently selected session, force refresh data and update transcription content
       if (sessionId === selectedSessionId) {
         // Immediately refresh session data
         fetchSessions()
-        
+
         // Delay and refresh again to ensure complete data sync
         setTimeout(() => {
           fetchSessions()
-          
+
           // Force set state to trigger transcription content update
           setIsRetranscribing(false)
           setHasSeenProcessing(false)
           setRetranscribeBaseline(null)
-          
+
           // Force clear current transcription content to trigger reload
           setCurrentTranscript([])
-          
+
           toast.success('Speaker recognition completed! Transcription content updated', {
             duration: 3000
           })
         }, 1000)
       }
     }
-    
+
     window.addEventListener('retranscriptionCompleted', handleRetranscriptionCompleted as EventListener)
-    
+
     return () => {
       window.removeEventListener('retranscriptionCompleted', handleRetranscriptionCompleted as EventListener)
     }
@@ -868,21 +869,21 @@ export default function HomePage() {
   // Listen for selected session status changes, auto-refresh transcription content
   useEffect(() => {
     if (!selectedSessionId) return
-    
+
     const selectedSession = sessions.find(s => s.id === selectedSessionId)
     if (!selectedSession) {
       return
     }
-    
+
     // Track if we've seen processing status
     if (selectedSession.status === 'processing' && isRetranscribing && !hasSeenProcessing) {
       setHasSeenProcessing(true)
     }
-    
+
     // Check if transcription content needs updating (retranscription completed or first load)
     let shouldUpdateTranscript = false
     let justCompletedRetranscription = false
-    
+
     // Retranscription completion detection: only reset after seeing processing then completed
     if (isRetranscribing && hasSeenProcessing && selectedSession.status === 'completed') {
       setIsRetranscribing(false)
@@ -908,7 +909,7 @@ export default function HomePage() {
             ? (t?.segments as string).length
             : 0
       }
-      
+
       if (retranscribeBaseline && (
         currentSignature.id !== retranscribeBaseline.id ||
         currentSignature.contentLength !== retranscribeBaseline.contentLength ||
@@ -922,19 +923,19 @@ export default function HomePage() {
         toast.success('Transcription reprocessing completed!', { duration: 4000 })
       }
     }
-    
+
     // Transcription content loading conditions: first load, retranscription completed, or current content is empty
-    if (selectedSession.status === 'completed' && 
-        selectedSession.transcriptions && 
-        selectedSession.transcriptions.length > 0 &&
-        (currentTranscript.length === 0 || shouldUpdateTranscript)) {
-      
+    if (selectedSession.status === 'completed' &&
+      selectedSession.transcriptions &&
+      selectedSession.transcriptions.length > 0 &&
+      (currentTranscript.length === 0 || shouldUpdateTranscript)) {
+
       const transcription = selectedSession.transcriptions[0]
-      
+
       // Rebuild transcription interface data
       if (transcription.segments && Array.isArray(transcription.segments) && transcription.segments.length > 0) {
         const transcriptItems = transcription.segments.map((segment: unknown, index: number) => {
-          const segmentData = segment as { 
+          const segmentData = segment as {
             start_time?: number
             end_time?: number
             speaker?: string
@@ -942,17 +943,17 @@ export default function HomePage() {
           }
           return {
             id: `${transcription.id}_segment_${index}`,
-            timestamp: segmentData.start_time && segmentData.end_time 
+            timestamp: segmentData.start_time && segmentData.end_time
               ? formatSegmentTimeRange(segmentData.start_time, segmentData.end_time)
               : new Date().toLocaleTimeString('zh-CN', { hour12: false }),
             speaker: segmentData.speaker || 'unknown',
             text: segmentData.text || ''
           }
         }).filter((item: { text: string }) => item.text.trim().length > 0)
-        
+
         setCurrentTranscript(transcriptItems)
         setFullTranscriptText(transcription.content || '')
-        
+
         // If retranscription completed, show additional user notification
         if (justCompletedRetranscription) {
           const uniqueSpeakers = Array.from(new Set(transcriptItems.map(item => item.speaker))).filter(s => s !== 'unknown')
@@ -964,7 +965,7 @@ export default function HomePage() {
         }
       }
     }
-    
+
     // If session status is not completed or processing, reset retranscription state
     if (selectedSession.status !== 'completed' && selectedSession.status !== 'processing') {
       setIsRetranscribing(false)
@@ -982,7 +983,7 @@ export default function HomePage() {
       const milliseconds = Math.floor((seconds % 1) * 1000)
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`
     }
-    
+
     return `[${formatTime(startTime)},${formatTime(endTime)}]`
   }
 
@@ -998,7 +999,7 @@ export default function HomePage() {
       // Get authentication token
       const supabaseModule = await import('@/lib/supabase')
       const token = supabaseModule.supabase ? (await supabaseModule.supabase.auth.getSession()).data.session?.access_token : null
-      
+
       if (!token) {
         toast.error('Unable to rename speaker: authentication failed')
         return
@@ -1010,10 +1011,10 @@ export default function HomePage() {
         oldSpeaker,
         newSpeaker
       }) as RenameSpeakerResponse
-      
+
       if (result.success) {
         toast.success(`Speaker renamed: ${oldSpeaker} → ${newSpeaker}`)
-        
+
         // Immediately update speaker names in current transcript content
         if (currentTranscript.length > 0) {
           const updatedTranscript = currentTranscript.map(item => ({
@@ -1022,26 +1023,26 @@ export default function HomePage() {
           }))
           setCurrentTranscript(updatedTranscript)
         }
-        
+
         // Multiple refreshes to ensure data sync, similar to retranscription handling
         await handleRefreshSessions()
-        
+
         // Refresh again after 1 second to ensure complete data sync
         setTimeout(async () => {
           await handleRefreshSessions()
-          
+
           // Re-process selected session transcription data to ensure complete UI update
           const refreshedSessions = sessions.find(s => s.id === sessionId)
           if (refreshedSessions) {
             await processSessionData(refreshedSessions)
           }
         }, 1000)
-        
+
         // Final refresh after 3 seconds to ensure all data is synced
         setTimeout(async () => {
           await handleRefreshSessions()
         }, 2000)
-        
+
       } else {
         throw new Error(result.message || 'Speaker rename failed')
       }
@@ -1068,7 +1069,7 @@ export default function HomePage() {
       case 'record':
         return (
           <div className="flex-1 flex h-full">
-            <FileList 
+            <FileList
               recordings={recordings}
               selectedId={selectedSessionId}
               onSelect={handleSessionSelect}
@@ -1095,8 +1096,8 @@ export default function HomePage() {
                 <div className={`${showAISummaryPanel ? 'w-1/3' : 'flex-1'} flex-shrink-0`}>
                   <TranscriptView
                     transcript={currentTranscript}
-                    timestamp={selectedSession?.created_at 
-                      ? new Date(selectedSession.created_at).toLocaleString('zh-CN') 
+                    timestamp={selectedSession?.created_at
+                      ? new Date(selectedSession.created_at).toLocaleString('zh-CN')
                       : new Date().toLocaleString('zh-CN')}
                     isRecording={isRecording}
                     onTranscriptUpdate={handleTranscriptUpdate}
@@ -1144,6 +1145,8 @@ export default function HomePage() {
             </div>
           </div>
         )
+      case 'product':
+        return <ProductPage />
       default:
         return null
     }
@@ -1151,7 +1154,7 @@ export default function HomePage() {
 
   return (
     <div className="h-screen flex bg-gray-100 overflow-hidden">
-      <Sidebar 
+      <Sidebar
         currentView={currentView}
         onViewChange={setCurrentView}
         user={user}
