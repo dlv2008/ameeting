@@ -74,6 +74,12 @@ class SpeakerDiarizationManager:
             if speaker_config.device == "cuda" and torch.cuda.is_available():
                 target_device = "cuda"
             
+            # 【优化】手动设置 embedding_batch_size
+            # 显存越小，这个值应该越小。设置为 1 时显存占用最低，但速度最慢。
+            embedding_batch_size = self._pipeline.embedding_batch_size
+            self._pipeline.embedding_batch_size = 8 
+            logger.info(f"Optimized embedding_batch_size frome {embedding_batch_size} to {self._pipeline.embedding_batch_size}")
+
             logger.info(f"Moving speaker diarization pipeline to {target_device}")
             self._pipeline.to(torch.device(target_device))
             
