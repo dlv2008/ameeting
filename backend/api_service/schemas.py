@@ -218,6 +218,20 @@ class GenerateTitleResponse(BaseModel):
     processing_time_ms: int = 0
 
 
+class ChatRequest(BaseModel):
+    """Chat request"""
+    message: str
+    history: List[Dict[str, str]] = []
+    template_id: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    """Chat response"""
+    response: str
+    model_used: str = ""
+    processing_time_ms: int = 0
+
+
 class AISummarySaveRequest(BaseModel):
     """Save AI summary request"""
     session_id: str

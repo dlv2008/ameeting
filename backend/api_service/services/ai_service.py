@@ -306,6 +306,186 @@ class AIService:
         # All models failed, use fallback
         return await self._handle_title_fallback(transcription)
     
+        # All models failed, use fallback
+        return await self._handle_title_fallback(transcription)
+    
+    async def chat(
+        self, 
+        message: str, 
+        history: List[Dict[str, str]] = None,
+        template_content: str = None
+    ) -> Dict[str, Any]:
+        """
+        Chat with AI.
+        
+        Args:
+            message: User message
+            history: Chat history
+            template_content: Optional template/system prompt override
+        
+        Returns:
+            Dictionary with chat response
+        """
+        if not message.strip():
+            return {
+                "success": False,
+                "response": "消息不能为空。",
+                "error_message": "empty_message"
+            }
+        
+        if not self.is_available():
+            return {
+                "success": False,
+                "response": "AI 服务不可用，请检查配置。",
+                "error_message": "ai_service_unavailable"
+            }
+        
+        start_time = time.time()
+        
+        # Build prompts
+        ai_summary_config = self.config.get("ai_summary", {})
+        base_system_prompt = ai_summary_config.get("prompts", {}).get("chat_system_prompt", 
+            "你是一个智能助手，可以回答用户的问题，协助用户完成任务。")
+        
+        system_prompt = template_content if template_content else base_system_prompt
+        
+        # Prepare messages with history
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        if history:
+            for msg in history:
+                role = msg.get("role")
+                content = msg.get("content")
+                if role and content:
+                    messages.append({"role": role, "content": content})
+        
+        # Add current message
+        messages.append({"role": "user", "content": message})
+        
+        # Try each model in priority order
+        for model_config in self.models:
+            try:
+                logger.info(f"Attempting chat with model: {model_config.name}")
+                
+                # Use _call_model_raw for chat to handle history correctly
+                response_text, metadata = await self._call_model_with_messages(
+                    model_config, messages
+                )
+                
+                if response_text:
+                    processing_time = int((time.time() - start_time) * 1000)
+                    
+                    metadata.update({
+                        "model_used": model_config.name,
+                        "ai_model": model_config.model,
+                        "ai_provider": model_config.name.split()[0].lower(),
+                        "success": True,
+                        "processing_time_ms": processing_time
+                    })
+                    
+                    logger.success(f"Chat response generated with {model_config.name}")
+                    
+                    return {
+                        "success": True,
+                        "response": response_text,
+                        "processing_time_ms": processing_time,
+                        "model_used": model_config.name,
+                        "ai_model": model_config.model,
+                        "token_usage": metadata.get("token_usage", {}),
+                        "cost_cents": metadata.get("cost_cents", 0)
+                    }
+                    
+            except Exception as e:
+                logger.warning(f"Model {model_config.name} failed: {e}")
+                continue
+        
+        return {
+            "success": False,
+            "response": "所有 AI 模型均无法响应，请稍后再试。",
+            "error_message": "all_models_failed"
+        }
+
+    async def _call_model_with_messages(self, model_config: ModelConfig, messages: List[Dict[str, str]]) -> Tuple[str, Dict[str, Any]]:
+        """
+        Call LLM with full message list.
+        """
+        start_time = time.time()
+        
+        try:
+            from litellm import acompletion
+            
+            kwargs = {
+                "model": model_config.model,
+                "messages": messages,
+                "max_tokens": model_config.max_tokens,
+                "temperature": model_config.temperature,
+            }
+            
+            if model_config.api_key:
+                if "openai" in model_config.model.lower() or "gpt" in model_config.model.lower():
+                    os.environ["OPENAI_API_KEY"] = model_config.api_key
+                elif "claude" in model_config.model.lower() or "anthropic" in model_config.model.lower():
+                    os.environ["ANTHROPIC_API_KEY"] = model_config.api_key
+                elif "deepseek" in model_config.model.lower():
+                    os.environ["DEEPSEEK_API_KEY"] = model_config.api_key
+                elif "qwen" in model_config.model.lower():
+                    os.environ["QWEN_API_KEY"] = model_config.api_key
+            
+            if model_config.api_base:
+                kwargs["api_base"] = model_config.api_base
+            
+            response = await self._call_with_retry(acompletion, **kwargs)
+            
+            content = response.choices[0].message.content
+            content = self._clean_llm_response(content)
+            
+            processing_time = (time.time() - start_time) * 1000
+            
+            metadata = {
+                "total_processing_time": processing_time,
+                "timestamp": int(time.time()),
+                "tokens_used": getattr(response.usage, 'total_tokens', 0) if hasattr(response, 'usage') else 0,
+            }
+            
+            # Add cost information
+            try:
+                cost_usd = None
+                if hasattr(response, '_response_ms') and response._response_ms:
+                    cost_usd = response._response_ms
+                elif hasattr(response, 'cost'):
+                    cost_usd = response.cost
+                elif hasattr(response, '_response_cost_usd'):
+                    cost_usd = response._response_cost_usd
+                elif hasattr(response, 'usage') and hasattr(response.usage, 'cost'):
+                    cost_usd = response.usage.cost
+                elif hasattr(response, 'usage') and hasattr(response.usage, 'total_cost'):
+                    cost_usd = response.usage.total_cost
+                
+                if cost_usd is not None:
+                    metadata["cost_cents"] = round(float(cost_usd) * 100)
+                else:
+                    metadata["cost_cents"] = 0
+            except Exception:
+                metadata["cost_cents"] = 0
+            
+            if hasattr(response, 'usage'):
+                metadata["token_usage"] = {
+                    "prompt_tokens": getattr(response.usage, 'prompt_tokens', 0),
+                    "completion_tokens": getattr(response.usage, 'completion_tokens', 0),
+                    "total_tokens": getattr(response.usage, 'total_tokens', 0)
+                }
+            
+            return content, metadata
+            
+        except Exception as e:
+            processing_time = (time.time() - start_time) * 1000
+            metadata = {
+                "error": str(e),
+                "total_processing_time": processing_time,
+                "timestamp": int(time.time()),
+            }
+            raise Exception(f"Model call failed: {e}")
+
     async def _call_model(self, model_config: ModelConfig, system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, Any]]:
         """
         Call a specific LLM model.

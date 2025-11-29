@@ -214,7 +214,8 @@ async def service_info() -> Dict[str, Any]:
 
 
 # Include routers
-from routers import sessions, sessions_v2, tasks_v2, users, templates, transcriptions, ai_sessions, livekit, audio, realtime
+# Include routers
+from routers import sessions, sessions_v2, tasks_v2, users, templates, transcriptions, ai_sessions, ai_chat, livekit, audio, realtime
 
 app.include_router(sessions.router, prefix="/api/v1")
 app.include_router(sessions_v2.router, prefix="/api")  # V2 routes
@@ -223,6 +224,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(templates.router, prefix="/api/v1")
 app.include_router(transcriptions.router, prefix="/api/v1")
 app.include_router(ai_sessions.router, prefix="/api")  # AI Sessions V2 routes
+app.include_router(ai_chat.router, prefix="/api")      # AI Chat V2 routes
 app.include_router(livekit.router, prefix="/api/v1")
 app.include_router(audio.router, prefix="/api/v1")
 app.include_router(realtime.router, prefix="/api/v1")

@@ -22,6 +22,7 @@ import { Header } from '@/components/header'
 import { TranscriptView } from '@/components/transcript-view'
 import { AISummaryPanel } from '@/components/ai-summary-panel'
 import { TemplateManager } from '@/components/template-manager'
+import { ChatInterface } from '@/components/chat-interface'
 import ProductPage from '@/app/product/page'
 import { useAuth } from '@/hooks/useAuth'
 import { useRecordingSessions } from '@/hooks/useRecordingSessions'
@@ -1138,10 +1139,9 @@ export default function HomePage() {
         )
       case 'ai':
         return (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">AI 助手</h2>
-              <p className="text-gray-600">AI 功能开发中...</p>
+          <div className="flex-1 h-full p-4 bg-gray-100 overflow-hidden">
+            <div className="h-full max-w-4xl mx-auto">
+              <ChatInterface />
             </div>
           </div>
         )
